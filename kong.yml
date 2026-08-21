@@ -1,0 +1,9 @@
+_format_version: "3.0"
+services:
+  - name: bff-service
+    url: http://host.docker.internal:4000
+    routes:
+      - name: graphql-route
+        paths:
+          - /graphql
+        strip_path: false

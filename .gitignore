@@ -1,0 +1,34 @@
+# OS and editor files
+.DS_Store
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# Node.js / TypeScript
+**/node_modules/
+**/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Go
+**/bin/
+**/*.test
+**/coverage.out
+
+# Local logs and runtime output
+*.log
+

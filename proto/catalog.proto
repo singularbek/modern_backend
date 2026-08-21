@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package catalog;
+
+option go_package = "catalog/gen;catalogpb";
+
+// 1. THE SERVICE (Functions you can invoke remotely)
+service CatalogService {
+  rpc CreateDraft (CreateDraftRequest) returns (CreateDraftResponse);
+}
+
+// 2. THE REQUEST MESSAGE (Data sent from TypeScript to Go)
+message CreateDraftRequest {
+  string merchant_id = 1;
+  string title = 2;
+  double price_etb = 3;
+  int32 initial_stock = 4;
+}
+
+// 3. THE RESPONSE MESSAGE (Data returned from Go to TypeScript)
+message CreateDraftResponse {
+  string draft_id = 1;
+  string status = 2;
+}
