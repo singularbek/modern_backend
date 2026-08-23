@@ -2,7 +2,7 @@
 
 A polyglot, event-driven microservices reference architecture demonstrating real-time data ingestion, high-performance inter-service communication, and hybrid vector search capabilities.
 
-This project showcases how modern backend services built with Go, Node.js/TypeScript, and Python interact using gRPC, GraphQL, WebSockets, and Apache Kafka to deliver low-latency operations alongside asynchronous event processing.
+This project showcases how modern backend services built with Go, Node.js/TypeScript, and Python interact using gRPC, GraphQL, WebSockets, Apache Kafka, and an agentic RAG loop to deliver low-latency operations alongside asynchronous event processing and tool-using AI workflows.
 
 ## 🏗 System Architecture
 
@@ -57,6 +57,7 @@ This project showcases how modern backend services built with Go, Node.js/TypeSc
 │  • Consumes async events from Kafka                               │
 │  • Generates vector embeddings via Transformer models             │
 │  • Indexes documents into Elasticsearch                            │
+│  • Runs an agentic LangGraph loop with tool calling               │
 └─────────────────────────────────┬─────────────────────────────────┘
                                   │
                            (Vector Storage)
@@ -103,18 +104,31 @@ Incoming textual data is encoded into high-dimensional vector representations us
 
 Vectors are indexed alongside structured metadata into Elasticsearch for hybrid similarity searches.
 
+### 6. Agentic Retrieval and Tool-Use Loop
+
+The Python service is not only a passive vector-ingestion worker. Its agentic query path uses LangGraph to coordinate an autonomous reasoning loop:
+
+1. The agent receives a natural-language catalog request and maintains the conversation as typed state.
+2. The language model decides whether it needs a capability, such as semantic catalog retrieval or discounted-price calculation.
+3. LangGraph executes the selected tool and appends the result to the message history.
+4. The result is returned to the model for another evaluation cycle, allowing multiple tool calls before the final response.
+5. The loop ends only when the model has enough evidence to answer the user.
+
+This makes the architecture agentic by design: the model dynamically selects actions, uses the vector store as memory, invokes deterministic business tools, and composes the final domain response. Kafka remains the asynchronous ingestion backbone, while the agentic loop turns indexed catalog knowledge into an interactive reasoning capability.
+
 ## 🛠 Tech Stack & Tools
 
-| Component        | Technology                               | Purpose / Role                                                   |
-| ---------------- | ---------------------------------------- | ---------------------------------------------------------------- |
-| API Gateway      | Kong                                     | Route management, request proxying, API rate limiting            |
-| BFF Layer        | Node.js, TypeScript, Express             | GraphQL engine, WebSockets provider, gRPC client                 |
-| Core Service     | Go (Golang)                              | High-performance gRPC server, transactional core, Kafka producer |
-| Messaging        | Apache Kafka, Strimzi Operator           | Event bus, distributed commit log                                |
-| AI Worker        | Python, HuggingFace SentenceTransformers | Asynchronous event consumer, embedding generation                |
-| Search & Storage | Elasticsearch                            | Dense vector storage, k-NN similarity search                     |
-| Protocol Schema  | Protocol Buffers (proto3), gRPC          | Service contract definition and binary serialization             |
-| Containerization | Docker, Kubernetes                       | Multi-container orchestration and deployment                     |
+| Component        | Technology                               | Purpose / Role                                                     |
+| ---------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| API Gateway      | Kong                                     | Route management, request proxying, API rate limiting              |
+| BFF Layer        | Node.js, TypeScript, Express             | GraphQL engine, WebSockets provider, gRPC client                   |
+| Core Service     | Go (Golang)                              | High-performance gRPC server, transactional core, Kafka producer   |
+| Messaging        | Apache Kafka, Strimzi Operator           | Event bus, distributed commit log                                  |
+| AI Worker        | Python, HuggingFace SentenceTransformers | Asynchronous event consumer, embedding generation                  |
+| Agentic RAG      | LangGraph, LangChain, OpenAI             | Tool selection, iterative retrieval, reasoning, response synthesis |
+| Search & Storage | Elasticsearch                            | Dense vector storage, k-NN similarity search                       |
+| Protocol Schema  | Protocol Buffers (proto3), gRPC          | Service contract definition and binary serialization               |
+| Containerization | Docker, Kubernetes                       | Multi-container orchestration and deployment                       |
 
 ## 📡 Protocols & Network Communication
 
@@ -146,6 +160,7 @@ Vectors are indexed alongside structured metadata into Elasticsearch for hybrid 
 │
 ├── python-rag/                # AI Vector Worker Service
 │   ├── worker.py              # Kafka consumer, transformer embedder, and Elastic indexer
+│   ├── agent.py               # Agentic LangGraph loop with vector search and tools
 │   └── requirements.txt
 │
 ├── k8s/                       # Infrastructure and Kubernetes manifests
@@ -161,4 +176,5 @@ Vectors are indexed alongside structured metadata into Elasticsearch for hybrid 
 3. **gRPC invocation:** The BFF uses dynamically loaded `.proto` definitions to send a compressed binary request over gRPC to the Go Core Service.
 4. **Domain processing and event emission:** The Go service processes the core operation, constructs an event payload, and writes it to an Apache Kafka topic using keyed partition mapping.
 5. **Immediate client acknowledgment:** The Go service responds over gRPC to the BFF, which immediately returns the status to the client over GraphQL while pushing a notification over WebSockets.
-6. **Asynchronous processing:** The Python RAG Worker, consuming from the Kafka topic, captures the event, runs text through a local embedding model, and stores the output in Elasticsearch as a `dense_vector`.
+6. **Asynchronous processing:** The Python RAG Worker, consuming from the Kafka topic, captures the event, runs text through an embedding model, and stores the output in Elasticsearch as a `dense_vector`.
+7. **Agentic retrieval:** A user query enters the Python agentic path, where LangGraph lets the model choose semantic vector search and deterministic calculation tools, loops over their results, and returns a grounded answer from the indexed catalog.
